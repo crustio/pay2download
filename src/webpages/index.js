@@ -5,7 +5,7 @@ import {
 } from "react-router-dom";
 import Home from './home';
 import SellMyFiles from './sellMyFiles';
-import BrowseFiles from './browseFiles';
+import BrowseFiles from './browserFiles';
 
 import Layout from '../components/Layout';
 
