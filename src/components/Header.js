@@ -5,6 +5,9 @@ import styled from 'styled-components';
 import { Button } from '@mui/material';
 import { makeStyles } from '@mui/styles';
 import buttonImg from '../assets/button_third.png';
+import { connect } from "react-redux";
+import { setAccountAddress } from '../redux/actions/AccountActions';
+import PropTypes from 'prop-types';
 
 const HeaderBar = styled.header`
   width: 100%;
@@ -36,10 +39,11 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const Header = () => {
+const Header = (props) => {
   const classes = useStyles();
   const history = useHistory();
   const [address, setAddress] = React.useState('');
+  const { setAccountAddress } = props;
   
   useEffect(() => {
     if(window.ethereum) {
@@ -47,7 +51,10 @@ const Header = () => {
       .request({ method: 'eth_accounts' })
       .then((res) => {
         if(res.length === 0) history.push('/');
-        else setAddress(res[0])
+        else {
+          setAddress(res[0]);
+          setAccountAddress(res[0]);
+        }
       })
       .catch(console.error);
     }
@@ -74,10 +81,16 @@ const Header = () => {
         </div>
       </div>
       <div className={classes.container}>
-        <Button className={classes.imgButton}>My Account</Button>
+        <Button className={classes.imgButton} onClick={() => history.push('/my-account')}>My Account</Button>
         <Button className={classes.imgButton} onClick={() => disconnect()}>Disconnect</Button>
       </div>
     </HeaderBar>
   );
 };
-export default Header;
+
+const mapStateToProps = state => ({
+  accountAddress: state.account.address,
+  setAccountAddress: PropTypes.func.isRequired,
+});
+
+export default connect(mapStateToProps, { setAccountAddress })(Header);

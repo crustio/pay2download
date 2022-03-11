@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios';
 import { makeStyles } from '@mui/styles';
 import { Button, Grid, OutlinedInput, LinearProgress } from '@mui/material';
 import { FileUploader } from "react-drag-drop-files";
@@ -14,6 +15,8 @@ import cardImg from '../../assets/card-background.png';
 import buttonImg from '../../assets/button.png';
 import buttonSecImg from '../../assets/button_sec.png';
 import buttonOrangeImg from '../../assets/button_orange.png';
+import { connect } from "react-redux";
+import { sign } from '../../utils/sign';
 
 const useStyles = makeStyles(theme => ({
     container: {
@@ -73,13 +76,15 @@ const useStyles = makeStyles(theme => ({
     }
   }));
 
-const BrowseFiles = () => {
+const BrowseFiles = (props) => {
   const classes = useStyles();
   const [fileList, setFileList] = React.useState([]);
   const [isUpdate, setIsUpdate] = React.useState(true);
   const [step, setStep] = React.useState(1);
+  const [update, setUpState] = React.useState(0);
   const hiddenFileInput = React.useRef(null);
   const hiddenMoreFileInput = React.useRef(null);
+  const { accountAddress } = props;
 
   const handleClick = event => {
     hiddenFileInput.current.click();
@@ -93,8 +98,64 @@ const BrowseFiles = () => {
     setStep(step+1);
   }
 
-  const handleClickUpload = event => {
-    setStep(step+1);
+  const handleClickUpload = async (event) => {
+    //setStep(step+1);
+    const signature = await sign(accountAddress, accountAddress);
+    const perSignData = `eth-${accountAddress}:${signature}`;
+    const base64Signature = window.btoa(perSignData);
+    const AuthBasic = `Basic ${base64Signature}`;
+    const AuthBearer = `Bearer ${base64Signature}`;
+    const cancel = axios.CancelToken.source();
+
+    setUpState(0);
+
+    const form = new FormData();
+    for (const f of fileList) {
+      form.append('file', f, f._webkitRelativePath || f.webkitRelativePath);
+    }
+    const UpEndpoint = 'https://crustwebsites.net';
+    const upResult = await axios.request({
+        cancelToken: cancel.token,
+        data: form,
+        headers: { Authorization: AuthBasic },
+        maxContentLength: 1024,
+        method: 'POST',
+        onUploadProgress: (p) => {
+            const percent = p.loaded / p.total;
+            setUpState(Math.round(percent * 99));
+        },
+        params: { pin: true },
+        url: `${UpEndpoint}/api/v0/add`
+    });
+
+    console.info('upResult:', upResult);
+    let upRes;
+    if (typeof upResult.data === 'string') {
+      const jsonStr = upResult.data.replaceAll('}\n{', '},{');
+      const items = JSON.parse(`[${jsonStr}]`);
+      const folder = items.length - 1;
+
+      upRes = items[folder];
+      delete items[folder];
+      upRes.items = items;
+  } else {
+      upRes = upResult.data;
+  }
+
+  console.log(upRes);
+
+    // remote pin order
+    const PinEndpoint = 'https://pin.crustcode.com';
+    
+    await axios.request({
+        data: {
+            cid: upRes.Hash,
+            name: upRes.Name
+        },
+        headers: { Authorization: AuthBearer },
+        method: 'POST',
+        url: `${PinEndpoint}/psa/pins`
+    });
   }
 
   const handleBack = event => {
@@ -229,4 +290,9 @@ const BrowseFiles = () => {
     </div>
   );
 };
-export default BrowseFiles;
+
+const mapStateToProps = state => ({
+  accountAddress: state.account.address,
+});
+
+export default connect(mapStateToProps, {  })(BrowseFiles);
