@@ -19,7 +19,7 @@ const Webpages = () => {
             <Route path = "/sell-my-files" component = {SellMyFiles} />
             <Route path = "/browse-files" component = {BrowseFiles} />
             <Route path = "/my-account" component = {MyAccount} />
-            <Route path = "/buy-files" component = {BuyFiles} />
+            <Route path = "/buy-files/:cid" component = {BuyFiles} />
           </Layout>
         </Router>
     );

@@ -113,7 +113,7 @@ const BrowseFiles = (props) => {
     for (const f of fileList) {
       form.append('file', f, f._webkitRelativePath || f.webkitRelativePath);
     }
-    const UpEndpoint = 'https://crustwebsites.net';
+    const UpEndpoint = 'https://gw.crustapps.net';
     const upResult = await axios.request({
         cancelToken: cancel.token,
         data: form,
@@ -166,7 +166,6 @@ const BrowseFiles = (props) => {
     var fileArr = [];
     Object.keys(event.target.files).forEach(key => fileArr.push(event.target.files[key]));
     setFileList(fileArr);
-    console.log(fileArr);
   }
 
   const handleDragAndDropChange = file => {
