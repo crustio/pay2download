@@ -17,6 +17,14 @@ import buttonSecImg from '../../assets/button_sec.png';
 import buttonOrangeImg from '../../assets/button_orange.png';
 import { connect } from "react-redux";
 import { sign } from '../../utils/sign';
+import JSZip from 'jszip';
+import JSZipUtils from 'jszip-utils';
+import { encryptFile } from '../../utils/encrypt';
+import { saveAs } from 'save-as'
+
+const {Cypher} = require("@zheeno/mnemonic-cypher");
+const WordsCount = 8
+const myCypher = new Cypher(WordsCount)
 
 const useStyles = makeStyles(theme => ({
     container: {
@@ -84,6 +92,8 @@ const BrowseFiles = (props) => {
   const [update, setUpState] = React.useState(0);
   const hiddenFileInput = React.useRef(null);
   const hiddenMoreFileInput = React.useRef(null);
+  const [itemName, setItemName] = React.useState('');
+  const [price, setPrice] = React.useState(0);
   const { accountAddress } = props;
 
   const handleClick = event => {
@@ -99,6 +109,104 @@ const BrowseFiles = (props) => {
   }
 
   const handleClickUpload = async (event) => {
+    // Compose all files into a folder
+    let zip = new JSZip();
+    var count = 0;
+    fileList.forEach(function(file) {
+      JSZipUtils.getBinaryContent(file._webkitRelativePath || file.webkitRelativePath, function (err, data) {
+        if(err) {
+          throw err;
+        }
+        zip.file(file.name, data, {binary: true});
+        count++;
+        if (count == fileList.length) {
+          zip.generateAsync({type:'blob'}).then(async (content) => {
+            console.log(content);
+
+            // Encrypt the file with public key
+            const cypher = new Cypher(WordsCount);
+            const {secret, mnemonics} = cypher.genMnemonics();
+            const encryptedData = await encryptFile(content, window.btoa(secret));
+            const encryptedFile = new Blob([encryptedData], { type: 'application/zip' });
+
+            // Upload the folder to IPFS W3Auth GW -> single cid back
+            const signature = await sign(accountAddress, accountAddress);
+            const perSignData = `eth-${accountAddress}:${signature}`;
+            const base64Signature = window.btoa(perSignData);
+            const AuthBasic = `Basic ${base64Signature}`;
+            const AuthBearer = `Bearer ${base64Signature}`;
+            const cancel = axios.CancelToken.source();
+
+            setUpState(0);
+
+            const form = new FormData();
+            form.append('file', encryptedFile, `${itemName}.zip`);
+
+            const UpEndpoint = 'https://gw.crustapps.net';
+            const upResult = await axios.request({
+                cancelToken: cancel.token,
+                data: form,
+                headers: { Authorization: AuthBasic },
+                maxContentLength: 1024,
+                method: 'POST',
+                onUploadProgress: (p) => {
+                    const percent = p.loaded / p.total;
+                    setUpState(Math.round(percent * 99));
+                },
+                params: { pin: true },
+                url: `${UpEndpoint}/api/v0/add`
+            });
+
+            console.info('upResult:', upResult);
+            let upRes;
+            if (typeof upResult.data === 'string') {
+              const jsonStr = upResult.data.replaceAll('}\n{', '},{');
+              const items = JSON.parse(`[${jsonStr}]`);
+              const folder = items.length - 1;
+
+              upRes = items[folder];
+              delete items[folder];
+              upRes.items = items;
+            } else {
+                upRes = upResult.data;
+            }
+
+            console.log(upRes);
+
+            // Call IPFS W3Auth pinning service
+            const PinEndpoint = 'https://pin.crustcode.com';
+            
+            let result = await axios.request({
+                data: {
+                    cid: upRes.Hash,
+                    name: upRes.Name
+                },
+                headers: { Authorization: AuthBearer },
+                method: 'POST',
+                url: `${PinEndpoint}/psa/pins`
+            });
+            
+            console.log(result, 'res');
+
+            // CALL API 1
+            let resultApi = await axios.request({
+              data: {
+                  cid: upRes.Hash,
+                  price: price,
+                  name: upRes.Name
+              },
+              headers: { Authorization: AuthBearer },
+              method: 'POST',
+              url: `https://p2d.crustcode.com/api/v1/calculateShortLinkHash`
+          });
+            console.log(resultApi, 'res');
+            // saveAs(content, `${itemName}.zip`);
+          });
+        }
+      });
+    });
+
+    /*
     //setStep(step+1);
     const signature = await sign(accountAddress, accountAddress);
     const perSignData = `eth-${accountAddress}:${signature}`;
@@ -138,11 +246,11 @@ const BrowseFiles = (props) => {
       upRes = items[folder];
       delete items[folder];
       upRes.items = items;
-  } else {
-      upRes = upResult.data;
-  }
+    } else {
+        upRes = upResult.data;
+    }
 
-  console.log(upRes);
+    console.log(upRes);
 
     // remote pin order
     const PinEndpoint = 'https://pin.crustcode.com';
@@ -156,6 +264,7 @@ const BrowseFiles = (props) => {
         method: 'POST',
         url: `${PinEndpoint}/psa/pins`
     });
+    */
   }
 
   const handleBack = event => {
@@ -259,19 +368,19 @@ const BrowseFiles = (props) => {
               <span>Files for Sale</span>
             </Grid>
             <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
-              <OutlinedInput type="text" value="" style={{width: '100%', maxWidth: 300}}/>
+              <OutlinedInput type="text" value={`${fileList.length} file${fileList.length === 1 ? '' : 's'} selected`} disabled style={{width: '100%', maxWidth: 300}}/>
             </Grid>
             <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
               <span>Name This Item</span>
             </Grid>
             <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
-              <OutlinedInput type="text" value="" style={{width: '100%', maxWidth: 300}}/>
+              <OutlinedInput type="text" value={itemName} onChange={(event) => setItemName(event.target.value)} style={{width: '100%', maxWidth: 300}}/>
             </Grid>
             <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
               <span>Set Price (ETH)</span>
             </Grid>
             <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
-              <OutlinedInput variant="outlined" type="text" value="" style={{width: '100%', maxWidth: 300}}/>
+              <OutlinedInput variant="outlined" type="number" inputProps={{ min: "0", step: "0.1"}} value={price} onChange={(event) => setPrice(event.target.value)} style={{width: '100%', maxWidth: 300}}/>
             </Grid>
           </Grid>
           <Button className={classes.imgButton} onClick={handleClickUpload} style={{marginTop: 20}}>Upload</Button> 
