@@ -53,7 +53,7 @@ const Home = () => {
       {isMetaMask ? 
       <img src={connectButton} style={{width: '30%', cursor: 'pointer'}} alt="" onClick={() => connectMetaMask()} /> 
       : 
-      <h2>You have not installed MetaMask yet. <a href="https://metamask.io/" target="_blank">Click here</a> to Install MetaMask.</h2>}
+      <h2>You have not installed MetaMask yet. <a href="https://metamask.io/" target="_blank" rel="noreferrer">Click here</a> to Install MetaMask.</h2>}
     </div>
   );
 };
