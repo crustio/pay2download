@@ -95,7 +95,7 @@ const BrowseFiles = (props) => {
   const [shareLink, setShareLink] = React.useState('');
   const [isSubmit, setSubmit] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState();
-  const { accountAddress } = props;
+  const { accountAddress, signature } = props;
 
   const handleClick = event => {
     hiddenFileInput.current.click();
@@ -134,7 +134,8 @@ const BrowseFiles = (props) => {
               const encryptedFile = new Blob([encryptedData], { type: 'application/zip' });
 
               // Upload the folder to IPFS W3Auth GW -> single cid back
-              const signature = await sign(accountAddress, accountAddress);
+              // const signature = await sign(accountAddress, accountAddress);
+              console.log(signature, 'signature files');
               const perSignData = `eth-${accountAddress}:${signature}`;
               const base64Signature = window.btoa(perSignData);
               const AuthBasic = `Basic ${base64Signature}`;
@@ -380,6 +381,7 @@ const BrowseFiles = (props) => {
 
 const mapStateToProps = state => ({
   accountAddress: state.account.address,
+  signature: state.account.signature
 });
 
 export default connect(mapStateToProps, {  })(BrowseFiles);

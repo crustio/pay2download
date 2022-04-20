@@ -1,9 +1,10 @@
 import {
-    SET_ACCOUNT_ADDRESS,
+    SET_ACCOUNT_ADDRESS, SET_ACCOUNT_SIGNATURE,
 } from "../actions/AccountActions";
 
 const initialState = {
     address: [],
+    signature: null
 };
 
 const AccountReducer = function(state = initialState, action) {
@@ -13,6 +14,12 @@ const AccountReducer = function(state = initialState, action) {
                 ...state,
                 address: action.address
             };
+        }
+        case SET_ACCOUNT_SIGNATURE: {
+            return {
+                ...state,
+                signature: action.signature
+            }
         }
         default: {
             return state;

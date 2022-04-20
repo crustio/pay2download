@@ -6,8 +6,9 @@ import { Button } from '@mui/material';
 import { makeStyles } from '@mui/styles';
 import buttonImg from '../assets/button_third.png';
 import { connect } from "react-redux";
-import { setAccountAddress } from '../redux/actions/AccountActions';
+import { setAccountAddress, setAccountSignature } from '../redux/actions/AccountActions';
 import PropTypes from 'prop-types';
+import { sign } from '../utils/sign';
 
 const HeaderBar = styled.header`
   width: 100%;
@@ -43,13 +44,13 @@ const Header = (props) => {
   const classes = useStyles();
   const history = useHistory();
   const [address, setAddress] = React.useState('');
-  const { setAccountAddress } = props;
+  const { setAccountAddress, setAccountSignature, accountAddress } = props;
   
   useEffect(() => {
     if(window.ethereum) {
       window.ethereum
       .request({ method: 'eth_accounts' })
-      .then((res) => {
+      .then(async (res) => {
         if(res.length === 0) history.push('/');
         else {
           setAddress(res[0]);
@@ -61,7 +62,14 @@ const Header = (props) => {
     else {
       history.push('/');
     }
-  });
+  }, []);
+
+  useEffect(async () => {
+    if(accountAddress) {
+      const signature = await sign(accountAddress, accountAddress);
+      setAccountSignature(signature);
+    }
+  }, [accountAddress]);
 
   const disconnect = () => {
     
@@ -91,6 +99,7 @@ const Header = (props) => {
 const mapStateToProps = state => ({
   accountAddress: state.account.address,
   setAccountAddress: PropTypes.func.isRequired,
+  setAccountSignature: PropTypes.func.isRequired,
 });
 
-export default connect(mapStateToProps, { setAccountAddress })(Header);
+export default connect(mapStateToProps, { setAccountAddress, setAccountSignature })(Header);

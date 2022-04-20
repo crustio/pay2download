@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from "react-router-dom";
 import { makeStyles } from '@mui/styles';
+import { connect } from "react-redux";
 import { Button, Grid, Snackbar, Box, IconButton, Alert } from '@mui/material';
 import CopyToClipboard from 'react-copy-to-clipboard';
 import Dialog from '@mui/material/Dialog';
@@ -19,6 +20,8 @@ import claimHistoryImg from '../../assets/claim_history.png';
 import Tooltip from '@mui/material/Tooltip';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
+import axios from 'axios';
+import { sign } from '../../utils/sign';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -126,11 +129,44 @@ const rows = [
   createData('06', 'Claim', '0.6ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
 ];
 
-const MyAccount = () => {
+const MyAccount = (props) => {
   const classes = useStyles();
   const history = useHistory();
   const [open, setOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState();
+  const [data, setData] = useState();
+  const [claimHistory, setClaimHistory] = useState();
+  const { accountAddress, signature } = props;
+
+  useEffect(async () => {
+    if(accountAddress && signature) {
+      // const signature = await sign(accountAddress, accountAddress);
+      const perSignData = `eth-${accountAddress}:${signature}`;
+      const base64Signature = window.btoa(perSignData);
+      const AuthBearer = `Bearer ${base64Signature}`;
+      console.log(accountAddress, 'accountAddress---');
+      await axios.request({
+        headers: { Authorization: AuthBearer },
+        method: 'get',
+        url: `https://p2d.crustcode.com/api/v1/accountInfo`
+      }).then(result => {
+        setData(result.data.data);
+      }).catch(error => {
+        setErrorMessage('Error occurred during fetch account info.');
+      });
+
+      await axios.request({
+        headers: { Authorization: AuthBearer },
+        method: 'get',
+        url: `https://p2d.crustcode.com/api/v1/claimHistory`
+      }).then(result => {
+        setClaimHistory(result.data.data);
+      }).catch(error => {
+        setErrorMessage('Error occurred during fetch claim history');
+      });
+    }
+  }, [accountAddress, signature])
 
   const handleBack = () => {
     history.push('/');
@@ -144,8 +180,8 @@ const MyAccount = () => {
           <Grid item lg={12} md={12} sm={12} xs={12} className={classes.myRevenueBlock}>
             <div>
               <p style={{fontSize: 20, fontWeight: 500}}>My Revenue</p>
-              <p style={{fontSize: 15, fontWeight: 300, lineHeight: 0.5}}>Total Revenue: 2.5 ETH</p>
-              <p style={{fontSize: 15, fontWeight: 300, lineHeight: 0.5}}>Unclaimed: 2.5 ETH</p>
+              <p style={{fontSize: 15, fontWeight: 300, lineHeight: 0.5}}>Total Revenue: {data?.totalRevenue} ETH</p>
+              <p style={{fontSize: 15, fontWeight: 300, lineHeight: 0.5}}>Unclaimed: {data?.unclaimed} ETH</p>
             </div>
             <div style={{paddingLeft: 30, paddingTop: 65}}>
               <Button className={classes.claimBtn}>Claim</Button>
@@ -175,7 +211,7 @@ const MyAccount = () => {
                       <TableBody sx={{
                           'tr:nth-of-type(odd)': {backgroundColor: '#F8F8F8'}
                         }}>
-                        {rows.map((row) => (
+                        {claimHistory?.map((row) => (
                           <TableRow
                             key={row.no}
                             sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -224,33 +260,17 @@ const MyAccount = () => {
           <Grid item lg={6} md={6} sm={12} xs={12} className={classes.mySellingItemsBlock}>
             <p style={{fontSize: 20, fontWeight: 500}}>My Selling Items</p>
             <div className={classes.listCard}>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
+              {data?.soldFiles?.map((item, index) => (
+                <p key={index}>{`#${index+1} ${item.name}, ${item.price} ETH, 25 sold`}</p>
+              ))}
             </div>
           </Grid>
           <Grid item lg={6} md={6} sm={12} xs={12} className={classes.myBoughtItemsBlock}>
             <p style={{fontSize: 20, fontWeight: 500}}>My Bought Items</p>
             <div className={classes.listCard}>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
-              <p>#1《泰坦尼克号》+ 中文字幕, 0.1 ETH, 25 sold</p>
+              {data?.boughtFiles?.map((item, index) => (
+                <p key={index}>{`#${index+1} ${item.name}, ${item.price} ETH, 25 sold`}</p>
+              ))}
             </div>
           </Grid>
         </Grid>
@@ -258,4 +278,9 @@ const MyAccount = () => {
     </div>
   );
 };
-export default MyAccount;
+
+const mapStateToProps = state => ({
+  accountAddress: state.account.address,
+  signature: state.account.signature
+});
+export default connect(mapStateToProps, {  })(MyAccount);
