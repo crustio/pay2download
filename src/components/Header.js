@@ -55,6 +55,7 @@ const Header = (props) => {
         else {
           setAddress(res[0]);
           setAccountAddress(res[0]);
+          localStorage.setItem('address', res[0]);
         }
       })
       .catch(console.error);
@@ -72,7 +73,8 @@ const Header = (props) => {
   }, [accountAddress]);
 
   const disconnect = () => {
-    
+    localStorage.removeItem('address');
+    history.push('/');
   }
 
   const shortenAddress = address => `${address.slice(0, 6)}...${address.substr(address.length - 8)}`;

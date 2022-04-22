@@ -372,7 +372,7 @@ const BrowseFiles = (props) => {
         {step === 4 && <div>
           <h1>Congratulations!</h1>
           <h3>You have successfully created a sale item.</h3>
-          <h3>Sharelinks:<a target="_blank" rel="noreferrer" href={`https://www.sell.crustfiles.io/${shareLink}`} style={{color: '#FF8D00'}}>www.sell.crustfiles.io/{shareLink}</a></h3>
+          <h3>Sharelinks:<a target="_blank" rel="noreferrer" href={`https://www.sell.crustfiles.io/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>www.sell.crustfiles.io/{shareLink}</a></h3>
         </div>}
       </div>
     </div>

@@ -21,7 +21,6 @@ import Tooltip from '@mui/material/Tooltip';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
-import { sign } from '../../utils/sign';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -119,15 +118,6 @@ const useStyles = makeStyles(theme => ({
 function createData(no, action, amount, date, status, tx) {
   return { no, action, amount, date, status, tx };
 }
-
-const rows = [
-  createData('01', 'Claim', '0.25ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
-  createData('02', 'Claim', '0.3ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
-  createData('03', 'Claim', '0.5ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
-  createData('04', 'Claim', '0.12ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
-  createData('05', 'Claim', '0.36ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
-  createData('06', 'Claim', '0.6ETH', '2022.01.28', 'Successful', '0x17281902328a232f768c253e3c3dca8206d1aa91139555351c0aecf5dc86972a'),
-];
 
 const MyAccount = (props) => {
   const classes = useStyles();

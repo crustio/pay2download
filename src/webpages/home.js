@@ -7,15 +7,18 @@ const Home = () => {
   const history = useHistory();
   const [web3, setWeb3] = React.useState();
   const [isMetaMask, setIsMetaMask] = React.useState(true);
+  const [address, setAddress] = React.useState();
   
   useEffect(() => {
     if(window.ethereum) {
-      window.ethereum
-      .request({ method: 'eth_accounts' })
-      .then((res) => {
-        if(res.length > 0) history.push('/sell-my-files');
-      })
-      .catch(console.error);
+      if(localStorage.getItem('address')) {
+        window.ethereum
+        .request({ method: 'eth_accounts' })
+        .then((res) => {
+          if(res.length > 0) history.push('/sell-my-files');
+        })
+        .catch(console.error);
+      }
     }
     else {
       setIsMetaMask(false);
@@ -23,8 +26,8 @@ const Home = () => {
   });
 
   useEffect(() => {
-    if(web3) { history.push('/sell-my-files') };
-  }, [web3]);
+    if(web3 && address) { history.push('/sell-my-files') };
+  }, [web3, address]);
 
   const connectMetaMask = async () => {
     if (window.ethereum) {
@@ -34,6 +37,17 @@ const Home = () => {
         setWeb3(web3Obj);
       } catch (error) {
       }
+
+      window.ethereum
+      .request({ method: 'eth_accounts' })
+      .then(async (res) => {
+        if(res.length === 0) history.push('/');
+        else {
+          localStorage.setItem('address', res[0]);
+          setAddress(res[0]);
+        }
+      })
+      .catch(console.error);
     }
     else if (window.web3) {
       const web3Obj = window.web3;
