@@ -56,3 +56,54 @@ export const encryptFile = async (
       throw error
     }
   }
+
+
+  export const decryptFile = async (
+    cipher,
+    password
+  ) => {
+    try {
+      const cipherBytes = new Uint8Array(cipher)
+      const passwordBytes = new TextEncoder().encode(password)
+  
+      const salt = cipherBytes.slice(0, 16)
+      const iv = cipherBytes.slice(16, 16 + 12)
+      const data = cipherBytes.slice(16 + 12)
+      const passwordKey = await importKeyFromBytes(passwordBytes)
+      const aesKey = await deriveKey(passwordKey, ["decrypt"], {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: 250000,
+        hash: "SHA-256"
+      })
+  
+      const decryptedContent = await window.crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv: iv
+        },
+        aesKey,
+        data
+      )
+  
+      return decryptedContent
+    } catch (error) {
+      console.error("Error decrypting file")
+      console.error(error)
+      return
+    }
+  }
+
+  export const readFileAsync = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+  
+      reader.onload = () => {
+        reader.result && resolve(reader.result)
+      }
+  
+      reader.onerror = reject
+  
+      reader.readAsArrayBuffer(file)
+    })
+  }

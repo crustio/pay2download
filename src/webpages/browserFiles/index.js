@@ -1,7 +1,8 @@
 import React from 'react';
 import axios from 'axios';
 import { makeStyles } from '@mui/styles';
-import { Button, Grid, OutlinedInput, LinearProgress, TextField } from '@mui/material';
+import { Button, Grid, OutlinedInput, TextField } from '@mui/material';
+import ProgressBar from "@ramonak/react-progress-bar";
 import { FileUploader } from "react-drag-drop-files";
 import TableContainer from '@mui/material/TableContainer';
 import Table from '@mui/material/Table';
@@ -16,11 +17,10 @@ import buttonImg from '../../assets/button.png';
 import buttonSecImg from '../../assets/button_sec.png';
 import buttonOrangeImg from '../../assets/button_orange.png';
 import { connect } from "react-redux";
-import { sign } from '../../utils/sign';
 import JSZip from 'jszip';
-import JSZipUtils from 'jszip-utils';
-import { encryptFile } from '../../utils/encrypt';
+import { encryptFile, readFileAsync } from '../../utils/encrypt';
 import {Cypher} from "@zheeno/mnemonic-cypher";
+import { saveAs } from 'file-saver';
 
 const WordsCount = 8
 
@@ -79,6 +79,11 @@ const useStyles = makeStyles(theme => ({
       position: 'fixed',
       top: 0,
       left: 0,
+    },
+    progressLabel: {
+      fontSize: 36,
+      fontWeight: 500,
+      lineHeight: 0,
     }
   }));
 
@@ -117,116 +122,111 @@ const BrowseFiles = (props) => {
       let zip = new JSZip();
       var count = 0;
       fileList.forEach(function(file) {
-        JSZipUtils.getBinaryContent(file._webkitRelativePath || file.webkitRelativePath, function (err, data) {
-          if(err) {
-            throw err;
-          }
-          zip.file(file.name, data, {binary: true});
-          count++;
-          if (count === fileList.length) {
-            zip.generateAsync({type:'blob'}).then(async (content) => {
-              setStep(step+1); // Move to progress page.
-              setUpState(0); // Set start progress 0.
-              // Encrypt the file with public key
-              const cypher = new Cypher(WordsCount);
-              const {secret, mnemonics} = cypher.genMnemonics();
-              const encryptedData = await encryptFile(content, window.btoa(secret));
-              const encryptedFile = new Blob([encryptedData], { type: 'application/zip' });
+        zip.file(file.name, file, {binary: true});
+        count++;
+        if (count === fileList.length) {
+          zip.generateAsync({type:'blob'}).then(async (content) => {
+            setStep(step+1); // Move to progress page.
+            setUpState(0); // Set start progress 0.
+            // Encrypt the file with public key
+            const cypher = new Cypher(WordsCount);
+            const {secret, mnemonics} = cypher.genMnemonics();
+            const file = new Blob([content], { type: 'application/zip' });
+            saveAs(file, `${itemName}.zip`);
+            const fileData = await readFileAsync(file)
+            const encryptedData = await encryptFile(fileData, window.btoa(secret));
+            const encryptedFile = new Blob([encryptedData], { type: 'application/zip' });
 
-              // Upload the folder to IPFS W3Auth GW -> single cid back
-              // const signature = await sign(accountAddress, accountAddress);
-              console.log(signature, 'signature files');
-              const perSignData = `eth-${accountAddress}:${signature}`;
-              const base64Signature = window.btoa(perSignData);
-              const AuthBasic = `Basic ${base64Signature}`;
-              const AuthBearer = `Bearer ${base64Signature}`;
-              const cancel = axios.CancelToken.source();
+            // Upload the folder to IPFS W3Auth GW -> single cid back
+            const perSignData = `eth-${accountAddress}:${signature}`;
+            const base64Signature = window.btoa(perSignData);
+            const AuthBasic = `Basic ${base64Signature}`;
+            const AuthBearer = `Bearer ${base64Signature}`;
+            const cancel = axios.CancelToken.source();
 
-              const form = new FormData();
-              form.append('file', encryptedFile, `${itemName}.zip`);
+            const form = new FormData();
+            form.append('file', encryptedFile, `${itemName}.zip`);
 
-              const UpEndpoint = 'https://crustwebsites.net';
-              const upResult = await axios.request({
-                  cancelToken: cancel.token,
-                  data: form,
-                  headers: { Authorization: AuthBasic },
-                  maxContentLength: 1024,
-                  method: 'POST',
-                  onUploadProgress: (p) => {
-                      const percent = p.loaded / p.total;
-                      setUpState(Math.round(percent * 99));
+            const upResult = await axios.request({
+                cancelToken: cancel.token,
+                data: form,
+                headers: { Authorization: AuthBasic },
+                maxContentLength: 1024,
+                method: 'POST',
+                onUploadProgress: (p) => {
+                    const percent = p.loaded / p.total;
+                    setUpState(Math.round(percent * 99));
+                },
+                params: { pin: true },
+                url: `${process.env.REACT_APP_IPFS_ENDPOINT}/api/v0/add`
+            }).catch(error => {
+              setErrorMessage('Error occurred during uploading!');
+            });
+
+            if(upResult?.status === 200) {
+              let upRes;
+              if (typeof upResult.data === 'string') {
+                const jsonStr = upResult.data.replaceAll('}\n{', '},{');
+                const items = JSON.parse(`[${jsonStr}]`);
+                const folder = items.length - 1;
+
+                upRes = items[folder];
+                delete items[folder];
+                upRes.items = items;
+              } else {
+                  upRes = upResult.data;
+              }
+
+              // Call IPFS W3Auth pinning service
+              const PinEndpoint = 'https://pin.crustcode.com';
+              
+              let resultApi = await axios.request({
+                  data: {
+                      cid: upRes.Hash,
+                      name: upRes.Name
                   },
-                  params: { pin: true },
-                  url: `${UpEndpoint}/api/v0/add`
+                  headers: { Authorization: AuthBearer },
+                  method: 'POST',
+                  url: `${PinEndpoint}/psa/pins`
               }).catch(error => {
-                setErrorMessage('Error occurred during uploading!');
+                setErrorMessage('Error occurred druing pinning cid!');
               });
-
-              if(upResult?.status === 200) {
-                let upRes;
-                if (typeof upResult.data === 'string') {
-                  const jsonStr = upResult.data.replaceAll('}\n{', '},{');
-                  const items = JSON.parse(`[${jsonStr}]`);
-                  const folder = items.length - 1;
-
-                  upRes = items[folder];
-                  delete items[folder];
-                  upRes.items = items;
-                } else {
-                    upRes = upResult.data;
-                }
-
-                // Call IPFS W3Auth pinning service
-                const PinEndpoint = 'https://pin.crustcode.com';
-                
-                let resultApi = await axios.request({
-                    data: {
-                        cid: upRes.Hash,
-                        name: upRes.Name
-                    },
-                    headers: { Authorization: AuthBearer },
-                    method: 'POST',
-                    url: `${PinEndpoint}/psa/pins`
+              
+              if(resultApi?.status === 200) {
+                setUpState(99);
+                // CALL API 1
+                resultApi = await axios.request({
+                  data: {
+                      cid: upRes.Hash,
+                      price: price,
+                      name: upRes.Name,
+                      private_key: window.btoa(secret)
+                  },
+                  headers: { Authorization: AuthBearer },
+                  method: 'POST',
+                  url: `https://p2d.crustcode.com/api/v1/calculateShortLinkHash`
                 }).catch(error => {
-                  setErrorMessage('Error occurred druing pinning cid!');
+                  setErrorMessage('Error occurred during generate short hash link');
                 });
-                
-                if(resultApi?.status === 200) {
-                  setUpState(99);
-                  // CALL API 1
-                  resultApi = await axios.request({
-                    data: {
-                        cid: upRes.Hash,
-                        price: price,
-                        name: upRes.Name,
-                        private_key: mnemonics
-                    },
-                    headers: { Authorization: AuthBearer },
-                    method: 'POST',
-                    url: `https://p2d.crustcode.com/api/v1/calculateShortLinkHash`
-                  }).catch(error => {
-                    setErrorMessage('Error occurred during generate short hash link');
-                  });
 
-                  if(resultApi?.status === 200) {
-                    setShareLink(resultApi.data.data.result);
-                    setUpState(100);
-                    setStep(4);
-                  }
-                  else {
-                    setErrorMessage('Error occurred during generate short hash link');
-                  }
+                if(resultApi?.status === 200) {
+                  setShareLink(resultApi.data.data.result);
+                  setUpState(100);
+                  setStep(4);
                 }
                 else {
-                  setErrorMessage('Error occurred druing pinning cid!');
+                  setErrorMessage('Error occurred during generate short hash link');
                 }
               }
               else {
-                setErrorMessage('Error occurred during uploading!');
+                setErrorMessage('Error occurred druing pinning cid!');
               }
-            });
-          }
-        });
+            }
+            else {
+              setErrorMessage('Error occurred during uploading!');
+            }
+          });
+        }
       });
     }
   }
@@ -366,13 +366,13 @@ const BrowseFiles = (props) => {
           <Button className={classes.imgButton} onClick={handleClickUpload} style={{marginTop: 20}}>Upload</Button> 
         </div>}
         {step === 3 && <div>
-          <h3 style={{color: errorMessage ? 'red' : null}}>{errorMessage ? errorMessage : "Waiting for Encryption & Uploading..."}</h3>
-          <LinearProgress variant="determinate" value={update}/>
+          <h3 className={classes.progressLabel} style={{color: errorMessage ? 'red' : null}}>{errorMessage ? errorMessage : "Waiting for Encryption & Uploading..."}</h3>
+          <ProgressBar completed={update} borderRadius={0} isLabelVisible={false} height={40} bgColor={"#56BA28"} style={{border: '1px solid black'}} className="progressWrapper"/>
         </div>}
         {step === 4 && <div>
           <h1>Congratulations!</h1>
           <h3>You have successfully created a sale item.</h3>
-          <h3>Sharelinks:<a target="_blank" rel="noreferrer" href={`https://www.sell.crustfiles.io/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>www.sell.crustfiles.io/{shareLink}</a></h3>
+          <h3>Sharelinks:<a target="_blank" rel="noreferrer" href={`${window.location.origin}/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>{window.location.origin}/buy-files/{shareLink}</a></h3>
         </div>}
       </div>
     </div>

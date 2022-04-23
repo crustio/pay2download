@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useHistory } from "react-router-dom";
 import logo from '../assets/logo.png';
 import styled from 'styled-components';
@@ -43,22 +43,38 @@ const useStyles = makeStyles(theme => ({
 const Header = (props) => {
   const classes = useStyles();
   const history = useHistory();
-  const [address, setAddress] = React.useState('');
   const { setAccountAddress, setAccountSignature, accountAddress } = props;
   
-  useEffect(() => {
+  useEffect(async () => {
     if(window.ethereum) {
-      window.ethereum
-      .request({ method: 'eth_accounts' })
-      .then(async (res) => {
-        if(res.length === 0) history.push('/');
-        else {
-          setAddress(res[0]);
-          setAccountAddress(res[0]);
-          localStorage.setItem('address', res[0]);
-        }
+      const storedSignature = localStorage.getItem('signature');
+      if(storedSignature) {
+        await setAccountSignature(storedSignature);
+      }
+
+      const storedAddress = localStorage.getItem('address');
+      if(storedAddress) {
+        await setAccountAddress(storedAddress);
+      }
+      else {
+        window.ethereum
+        .request({ method: 'eth_accounts' })
+        .then(async (res) => {
+          if(res.length === 0) history.push('/');
+          else {
+            setAccountAddress(res[0]);
+            localStorage.setItem('address', res[0]);
+          }
+        })
+        .catch(console.error);
+      }
+
+      window.ethereum.on('accountsChanged', async (accounts) => {
+        localStorage.setItem('address', accounts[0]);
+        updateSignature(accounts[0]).then(res => {
+          setAccountAddress(accounts[0]);
+        });
       })
-      .catch(console.error);
     }
     else {
       history.push('/');
@@ -66,18 +82,26 @@ const Header = (props) => {
   }, []);
 
   useEffect(async () => {
-    if(accountAddress) {
-      const signature = await sign(accountAddress, accountAddress);
-      setAccountSignature(signature);
+    const storedSignature = localStorage.getItem('signature');
+    if(accountAddress && accountAddress.length > 0 && !storedSignature) {
+      updateSignature(accountAddress);
     }
   }, [accountAddress]);
 
   const disconnect = () => {
     localStorage.removeItem('address');
+    localStorage.removeItem('signature');
     history.push('/');
   }
 
-  const shortenAddress = address => `${address.slice(0, 6)}...${address.substr(address.length - 8)}`;
+  const shortenAddress = address => address && address.length > 0 ? `${address.slice(0, 6)}...${address.substr(address.length - 8)}` : '';
+
+  const updateSignature = async (address) => {
+    console.log('sign called');
+    const signature = await sign(address, address);
+    localStorage.setItem('signature', signature);
+    setAccountSignature(signature);
+  }
 
   return (
     <HeaderBar>
@@ -87,7 +111,7 @@ const Header = (props) => {
         </div>
         <div>
             <p style={{fontSize: 20, fontWeight: 500, margin: '0px 0px 0px 10px' }}>Hello</p>
-            <p style={{fontSize: 15, fontWeight: 500, margin: '0px 0px 0px 10px' }}>{shortenAddress(address)}</p>
+            <p style={{fontSize: 15, fontWeight: 500, margin: '0px 0px 0px 10px' }}>{shortenAddress(accountAddress)}</p>
         </div>
       </div>
       <div className={classes.container}>

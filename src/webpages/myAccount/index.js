@@ -162,6 +162,22 @@ const MyAccount = (props) => {
     history.push('/');
   }
 
+  const onClickClaim = async () => {
+    const perSignData = `eth-${accountAddress}:${signature}`;
+    const base64Signature = window.btoa(perSignData);
+    const AuthBearer = `Bearer ${base64Signature}`;
+
+    await axios.request({
+      headers: { Authorization: AuthBearer },
+      method: 'post',
+      url: `https://p2d.crustcode.com/api/v1/claim`
+    }).then(result => {
+      console.log(result);
+    }).catch(error => {
+      setErrorMessage('Error occurred during fetch claim history');
+    });
+  }
+
   return (
     <div className={classes.container}>
       <div className={classes.card}>
@@ -174,7 +190,7 @@ const MyAccount = (props) => {
               <p style={{fontSize: 15, fontWeight: 300, lineHeight: 0.5}}>Unclaimed: {data?.unclaimed} ETH</p>
             </div>
             <div style={{paddingLeft: 30, paddingTop: 65}}>
-              <Button className={classes.claimBtn}>Claim</Button>
+              <Button className={classes.claimBtn} onClick={() => onClickClaim()}>Claim</Button>
               <Button className={classes.claimHistoryBtn} onClick={() => setOpen(true)}>Check Claim History</Button>
               <Dialog onClose={() => setOpen(false)} open={open} maxWidth="md">
                 <DialogTitle>
