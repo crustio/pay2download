@@ -20,7 +20,6 @@ import { connect } from "react-redux";
 import JSZip from 'jszip';
 import { encryptFile, readFileAsync } from '../../utils/encrypt';
 import {Cypher} from "@zheeno/mnemonic-cypher";
-import { saveAs } from 'file-saver';
 
 const WordsCount = 8
 
@@ -114,6 +113,18 @@ const BrowseFiles = (props) => {
     setStep(step+1);
   }
 
+  const formatBytes = (bytes, decimals = 2) => {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+
   const handleClickUpload = async (event) => {
     setSubmit(true);
 
@@ -128,11 +139,11 @@ const BrowseFiles = (props) => {
           zip.generateAsync({type:'blob'}).then(async (content) => {
             setStep(step+1); // Move to progress page.
             setUpState(0); // Set start progress 0.
+
             // Encrypt the file with public key
             const cypher = new Cypher(WordsCount);
             const {secret, mnemonics} = cypher.genMnemonics();
             const file = new Blob([content], { type: 'application/zip' });
-            saveAs(file, `${itemName}.zip`);
             const fileData = await readFileAsync(file)
             const encryptedData = await encryptFile(fileData, window.btoa(secret));
             const encryptedFile = new Blob([encryptedData], { type: 'application/zip' });
@@ -200,7 +211,11 @@ const BrowseFiles = (props) => {
                       cid: upRes.Hash,
                       price: price,
                       name: upRes.Name,
-                      private_key: window.btoa(secret)
+                      private_key: window.btoa(secret),
+                      options: {
+                        size: formatBytes(upRes.Size),
+                        count: fileList.length,
+                      }
                   },
                   headers: { Authorization: AuthBearer },
                   method: 'POST',
@@ -275,105 +290,111 @@ const BrowseFiles = (props) => {
           (step === 2 || step === 3) &&
           <Button style={{textTransform: 'none', position: 'absolute', top: 15, left: 20, color: 'black'}} onClick={handleBack}>{"< Go back"}</Button>
         }
-        {step === 1 && <React.Fragment>
-          {fileList.length === 0 ? 
-            <div>
-                <FileUploader 
-                  multiple={true}
-                  name="file"
-                  handleChange={handleDragAndDropChange}
-                >
-                  <div className={classes.fileDragAndDrop}></div>
-                </FileUploader>
-                <h2>Drag & Drop Files Here</h2>
-                <h2>or</h2>
-                <Button className={classes.imgButton} onClick={handleClick}>Browse Files</Button> 
-                <input type='file' onChange={handleChange} multiple style={{display: 'none'}} ref={hiddenFileInput}/>
-            </div>
-          :
-            <div>
-              <div style={{marginBottom: '30px'}}>
-              <TableContainer style={{ maxHeight: '20rem' }}>
-                <Table sx={{ minWidth: 650 }} aria-label="simple table">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>File Name</TableCell>
-                      <TableCell align="right">Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody sx={{
-                    'tr:nth-of-type(odd)': {backgroundColor: '#F8F8F8'}
-                  }}>
-                    {fileList.map((file, index) => (
-                      <TableRow
-                        key={index}
-                        sx={{ '&:last-child td, &:last-child th': { border: 0 }, 'td': {padding: 0}}}
-                      >
-                        <TableCell component="th" scope="row">
-                          {file.name}
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton onClick={() => removeFile(index)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                </TableContainer>
+        {signature ? <React.Fragment>
+          {step === 1 && <React.Fragment>
+            {fileList.length === 0 ? 
+              <div>
+                  <FileUploader 
+                    multiple={true}
+                    name="file"
+                    handleChange={handleDragAndDropChange}
+                  >
+                    <div className={classes.fileDragAndDrop}></div>
+                  </FileUploader>
+                  <h2>Drag & Drop Files Here</h2>
+                  <h2>or</h2>
+                  <Button className={classes.imgButton} onClick={handleClick}>Browse Files</Button> 
+                  <input type='file' onChange={handleChange} multiple style={{display: 'none'}} ref={hiddenFileInput}/>
               </div>
-              <Button className={classes.addMoreButton} onClick={handleMoreClick}>Add More</Button>
-              <Button className={classes.continueButton} onClick={handleClickContinue}>Continue</Button>
-              <input type='file' onChange={handleMoreChange} multiple style={{display: 'none'}} ref={hiddenMoreFileInput}/>
-            </div>
-          }
+            :
+              <div>
+                <div style={{marginBottom: '30px'}}>
+                <TableContainer style={{ maxHeight: '20rem' }}>
+                  <Table sx={{ minWidth: 650 }} aria-label="simple table">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>File Name</TableCell>
+                        <TableCell align="right">Action</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody sx={{
+                      'tr:nth-of-type(odd)': {backgroundColor: '#F8F8F8'}
+                    }}>
+                      {fileList.map((file, index) => (
+                        <TableRow
+                          key={index}
+                          sx={{ '&:last-child td, &:last-child th': { border: 0 }, 'td': {padding: 0}}}
+                        >
+                          <TableCell component="th" scope="row">
+                            {file.name}
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton onClick={() => removeFile(index)}><DeleteIcon /></IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  </TableContainer>
+                </div>
+                <Button className={classes.addMoreButton} onClick={handleMoreClick}>Add More</Button>
+                <Button className={classes.continueButton} onClick={handleClickContinue}>Continue</Button>
+                <input type='file' onChange={handleMoreChange} multiple style={{display: 'none'}} ref={hiddenMoreFileInput}/>
+              </div>
+            }
+          </React.Fragment>}
+          {step === 2 && <div>
+            <Grid container spacing={3}>
+              <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
+                <span>Files for Sale</span>
+              </Grid>
+              <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
+                <OutlinedInput type="text" value={`${fileList.length} file${fileList.length === 1 ? '' : 's'} selected`} disabled style={{width: '100%', maxWidth: 300}}/>
+              </Grid>
+              <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
+                <span>Name This Item</span>
+              </Grid>
+              <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
+                <TextField 
+                  error={!itemName && isSubmit ? true : false}
+                  value={itemName} 
+                  onChange={(event) => { setItemName(event.target.value); setSubmit(false); }} 
+                  style={{width: '100%', maxWidth: 300}}
+                  helperText={!itemName && isSubmit ? "This field is required" : null}
+                />
+              </Grid>
+              <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
+                <span>Set Price (ETH)</span>
+              </Grid>
+              <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
+                <TextField 
+                  error={(!price || price  <= 0) && isSubmit ? true : false}
+                  variant="outlined" 
+                  type="number" 
+                  inputProps={{ min: "0", step: "0.1"}} 
+                  value={price} 
+                  onChange={(event) => { setPrice(event.target.value); setSubmit(false); }} 
+                  style={{width: '100%', maxWidth: 300}}
+                  helperText={(!price || price  <= 0) && isSubmit ? "The value should not be null or less than 0." : null}
+                />
+              </Grid>
+            </Grid>
+            <Button className={classes.imgButton} onClick={handleClickUpload} style={{marginTop: 20}}>Upload</Button> 
+          </div>}
+          {step === 3 && <div>
+            <h3 className={classes.progressLabel} style={{color: errorMessage ? 'red' : null}}>{errorMessage ? errorMessage : "Waiting for Encryption & Uploading..."}</h3>
+            <ProgressBar completed={update} borderRadius="0px" isLabelVisible={false} height="40px" bgColor={"#56BA28"} style={{border: '1px solid black'}} className="progressWrapper"/>
+          </div>}
+          {step === 4 && <div>
+            <h1>Congratulations!</h1>
+            <h3>You have successfully created a sale item.</h3>
+            <h3>Sharelinks:<a target="_blank" rel="noreferrer" href={`${window.location.origin}/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>{window.location.origin}/buy-files/{shareLink}</a></h3>
+          </div>}
+        </React.Fragment> : <React.Fragment>
+          <div>
+            <h2>You didn't sign from Metamask. Please check Metamask or refresh page.</h2>
+          </div>
         </React.Fragment>}
-        {step === 2 && <div>
-          <Grid container spacing={3}>
-            <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
-              <span>Files for Sale</span>
-            </Grid>
-            <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
-              <OutlinedInput type="text" value={`${fileList.length} file${fileList.length === 1 ? '' : 's'} selected`} disabled style={{width: '100%', maxWidth: 300}}/>
-            </Grid>
-            <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
-              <span>Name This Item</span>
-            </Grid>
-            <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
-              <TextField 
-                error={!itemName && isSubmit ? true : false}
-                value={itemName} 
-                onChange={(event) => { setItemName(event.target.value); setSubmit(false); }} 
-                style={{width: '100%', maxWidth: 300}}
-                helperText={!itemName && isSubmit ? "This field is required" : null}
-              />
-            </Grid>
-            <Grid item lg={5} md={5} sm={12} xs={12} style={{display: 'grid', textAlign: 'end', alignItems: 'center'}}>
-              <span>Set Price (ETH)</span>
-            </Grid>
-            <Grid item lg={7} md={7} sm={12} xs={12} style={{textAlign: 'start'}}>
-              <TextField 
-                error={(!price || price  <= 0) && isSubmit ? true : false}
-                variant="outlined" 
-                type="number" 
-                inputProps={{ min: "0", step: "0.1"}} 
-                value={price} 
-                onChange={(event) => { setPrice(event.target.value); setSubmit(false); }} 
-                style={{width: '100%', maxWidth: 300}}
-                helperText={(!price || price  <= 0) && isSubmit ? "The value should not be null or less than 0." : null}
-              />
-            </Grid>
-          </Grid>
-          <Button className={classes.imgButton} onClick={handleClickUpload} style={{marginTop: 20}}>Upload</Button> 
-        </div>}
-        {step === 3 && <div>
-          <h3 className={classes.progressLabel} style={{color: errorMessage ? 'red' : null}}>{errorMessage ? errorMessage : "Waiting for Encryption & Uploading..."}</h3>
-          <ProgressBar completed={update} borderRadius={0} isLabelVisible={false} height={40} bgColor={"#56BA28"} style={{border: '1px solid black'}} className="progressWrapper"/>
-        </div>}
-        {step === 4 && <div>
-          <h1>Congratulations!</h1>
-          <h3>You have successfully created a sale item.</h3>
-          <h3>Sharelinks:<a target="_blank" rel="noreferrer" href={`${window.location.origin}/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>{window.location.origin}/buy-files/{shareLink}</a></h3>
-        </div>}
       </div>
     </div>
   );

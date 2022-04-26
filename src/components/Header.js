@@ -69,12 +69,14 @@ const Header = (props) => {
         .catch(console.error);
       }
 
-      window.ethereum.on('accountsChanged', async (accounts) => {
-        localStorage.setItem('address', accounts[0]);
-        updateSignature(accounts[0]).then(res => {
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if(localStorage.getItem('address') !== accounts[0] && !document.hidden) {
+          localStorage.setItem('address', accounts[0]);
+          localStorage.removeItem('signature');
+          setAccountSignature(null);
           setAccountAddress(accounts[0]);
-        });
-      })
+        }
+      });
     }
     else {
       history.push('/');
@@ -97,7 +99,6 @@ const Header = (props) => {
   const shortenAddress = address => address && address.length > 0 ? `${address.slice(0, 6)}...${address.substr(address.length - 8)}` : '';
 
   const updateSignature = async (address) => {
-    console.log('sign called');
     const signature = await sign(address, address);
     localStorage.setItem('signature', signature);
     setAccountSignature(signature);

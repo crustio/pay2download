@@ -130,12 +130,11 @@ const MyAccount = (props) => {
   const { accountAddress, signature } = props;
 
   useEffect(async () => {
-    if(accountAddress && signature) {
+    if(accountAddress && signature && accountAddress.length > 0) {
       // const signature = await sign(accountAddress, accountAddress);
       const perSignData = `eth-${accountAddress}:${signature}`;
       const base64Signature = window.btoa(perSignData);
       const AuthBearer = `Bearer ${base64Signature}`;
-      console.log(accountAddress, 'accountAddress---');
       await axios.request({
         headers: { Authorization: AuthBearer },
         method: 'get',
@@ -172,7 +171,7 @@ const MyAccount = (props) => {
       method: 'post',
       url: `https://p2d.crustcode.com/api/v1/claim`
     }).then(result => {
-      console.log(result);
+      
     }).catch(error => {
       setErrorMessage('Error occurred during fetch claim history');
     });
@@ -182,7 +181,7 @@ const MyAccount = (props) => {
     <div className={classes.container}>
       <div className={classes.card}>
         <Button style={{textTransform: 'none', position: 'absolute', top: 15, left: 20, color: 'black'}} onClick={handleBack}>{"< Go back"}</Button>
-        <Grid container style={{height: '96%', width: '98%'}}>
+        {signature ? <Grid container style={{height: '96%', width: '98%'}}>
           <Grid item lg={12} md={12} sm={12} xs={12} className={classes.myRevenueBlock}>
             <div>
               <p style={{fontSize: 20, fontWeight: 500}}>My Revenue</p>
@@ -219,7 +218,7 @@ const MyAccount = (props) => {
                         }}>
                         {claimHistory?.map((row) => (
                           <TableRow
-                            key={row.no}
+                            key={`row-${row.no}`}
                             sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                           >
                             <TableCell align="right">{row.no}</TableCell>
@@ -267,7 +266,7 @@ const MyAccount = (props) => {
             <p style={{fontSize: 20, fontWeight: 500}}>My Selling Items</p>
             <div className={classes.listCard}>
               {data?.soldFiles?.map((item, index) => (
-                <p key={index}>{`#${index+1} ${item.name}, ${item.price} ETH, 25 sold`}</p>
+                <p key={`sold-files-${index}`}>{`#${index+1} ${item.name}, ${item.price} ETH, ${item.buyers.length} sold`}</p>
               ))}
             </div>
           </Grid>
@@ -275,11 +274,16 @@ const MyAccount = (props) => {
             <p style={{fontSize: 20, fontWeight: 500}}>My Bought Items</p>
             <div className={classes.listCard}>
               {data?.boughtFiles?.map((item, index) => (
-                <p key={index}>{`#${index+1} ${item.name}, ${item.price} ETH, 25 sold`}</p>
+                <p key={`bought-files-${index}`}>{`#${index+1} ${item.name}, ${item.price} ETH, ${item.buyers.length} sold`}</p>
               ))}
             </div>
           </Grid>
         </Grid>
+        : 
+        <div>
+          <h2>You didn't sign from Metamask. Please check Metamask or refresh page.</h2>
+        </div>
+        }
       </div>
     </div>
   );

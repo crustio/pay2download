@@ -69,7 +69,7 @@ const BuyFiles = (props) => {
   const { accountAddress, signature } = props;
 
   useEffect(async () => {
-    if(accountAddress && signature) {
+    if(accountAddress && signature && accountAddress.length > 0) {
       // const signature = await sign(accountAddress, accountAddress);
       const perSignData = `eth-${accountAddress}:${signature}`;
       const base64Signature = window.btoa(perSignData);
@@ -81,12 +81,13 @@ const BuyFiles = (props) => {
         url: `https://p2d.crustcode.com/api/v1/shortLink/${shortlink}`
       }).then(result => {
         if(result.data.data.name) {
-          console.log(result.data);
           setName(result.data.data.name);
           setPrice(result.data.data.price);
           setSellerAddress(result.data.data.payment_address);
           setFileCid(result.data.data.cid);
           setFileExist(true);
+          setSize(result.data.data.options.size);
+          setNumberOfFiles(result.data.data.options.count);
         }
         else {
           setFileExist(false);
@@ -113,7 +114,6 @@ const BuyFiles = (props) => {
         url: `https://p2d.crustcode.com/api/v1/buyFile`
       }).then(result => {
         if(result.data) {
-          console.log(result.data, 'buy file');
           if(result.data.data.status === true) {
             setPrivateKey(result.data.data.result.private_key);
             setStep(step+1);
@@ -142,10 +142,8 @@ const BuyFiles = (props) => {
         chainId: '0x4'
       })
       .on('transactionHash', function(hash){
-          console.log('transaction Hash: ', hash);
       })
       .on('receipt', function(receipt){
-        console.log('receipt: ', receipt);
       })
       .on('confirmation', function(confirmationNumber, receipt){ 
         setTransactionHash(receipt.transactionHash);
@@ -164,27 +162,34 @@ const BuyFiles = (props) => {
   return (
     <div className={classes.container}>
       <div className={classes.card}>
-        {fileExist === true ? <div>
-            <h2>{name}</h2>
-            <p>{numberOfFiles} Files, {size} GB, {price} ETH</p>
-            {loading && <p className={classes.msg}>Payment Processing... Please Wait</p>}
-            <Button 
-              className={loading === false ? classes.imgButton : classes.imgButtonDisabled} 
-              onClick={() => {
-                if(step === 1) {
-                  clickPayButton()
-                }
-                else {
-                  decryptAndDownload(privateKey);
-                }
-              }} 
-              disabled={loading}>
-                {step === 1 ? `Pay ${price} ETH` : 'Download'}
-            </Button> 
-        </div> : 
-        <div>
-          <h2>File Does not exist.</h2>
-        </div>}
+        {signature ? <React.Fragment>
+          {fileExist === true ? <div>
+              <h2>{name}</h2>
+              <p>{numberOfFiles} Files, {size}, {price} ETH</p>
+              {loading && <p className={classes.msg}>Payment Processing... Please Wait</p>}
+              <Button 
+                className={loading === false ? classes.imgButton : classes.imgButtonDisabled} 
+                onClick={() => {
+                  if(step === 1) {
+                    clickPayButton()
+                  }
+                  else {
+                    decryptAndDownload(privateKey);
+                  }
+                }} 
+                disabled={loading}>
+                  {step === 1 ? `Pay ${price} ETH` : 'Download'}
+              </Button> 
+          </div> : 
+          <div>
+            <h2>File Does not exist.</h2>
+          </div>}
+          </React.Fragment> 
+          :
+          <div>
+            <h2>You didn't sign from Metamask. Please check Metamask or refresh page.</h2>
+          </div>
+        }
       </div>
     </div>
   );
