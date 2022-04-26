@@ -19,6 +19,7 @@ import buttonOrangeImg from '../../assets/button_orange.png';
 import { connect } from "react-redux";
 import JSZip from 'jszip';
 import { encryptFile, readFileAsync } from '../../utils/encrypt';
+import Tooltip from '@mui/material/Tooltip';
 import {Cypher} from "@zheeno/mnemonic-cypher";
 
 const WordsCount = 8
@@ -326,7 +327,22 @@ const BrowseFiles = (props) => {
                           sx={{ '&:last-child td, &:last-child th': { border: 0 }, 'td': {padding: 0}}}
                         >
                           <TableCell component="th" scope="row">
-                            {file.name}
+                            <Tooltip title={
+                                <span>{file.name}</span>
+                            } arrow placement="top" componentsProps={{
+                              tooltip: {
+                                sx: {
+                                  color: "black",
+                                  backgroundColor: "white",
+                                  boxShadow: "0 0 6px rgba(100, 100, 100, 0.5)"
+                                }
+                              },
+                              arrow: {
+                                sx: {
+                                  color: 'white',
+                                }
+                              }
+                            }}><span>{file.name.length > 20 ? file.name.slice(0, 20) + '...' : file.name}</span></Tooltip>
                           </TableCell>
                           <TableCell align="right">
                             <IconButton onClick={() => removeFile(index)}><DeleteIcon /></IconButton>

@@ -150,6 +150,7 @@ const MyAccount = (props) => {
         method: 'get',
         url: `https://p2d.crustcode.com/api/v1/claimHistory`
       }).then(result => {
+        console.log(result.data.data, "claim history");
         setClaimHistory(result.data.data);
       }).catch(error => {
         setErrorMessage('Error occurred during fetch claim history');
@@ -173,7 +174,7 @@ const MyAccount = (props) => {
     }).then(result => {
       
     }).catch(error => {
-      setErrorMessage('Error occurred during fetch claim history');
+      setErrorMessage('Error occurred during fetch claim');
     });
   }
 
@@ -206,30 +207,30 @@ const MyAccount = (props) => {
                       <TableHead>
                         <TableRow>
                           <TableCell>No.</TableCell>
-                          <TableCell align="right">Action</TableCell>
-                          <TableCell align="right">Amount</TableCell>
-                          <TableCell align="right">Date</TableCell>
-                          <TableCell align="right">Status</TableCell>
-                          <TableCell align="right"></TableCell>
+                          <TableCell align="left">Action</TableCell>
+                          <TableCell align="left">Amount</TableCell>
+                          <TableCell align="left">Date</TableCell>
+                          <TableCell align="left">Status</TableCell>
+                          <TableCell align="left"></TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody sx={{
                           'tr:nth-of-type(odd)': {backgroundColor: '#F8F8F8'}
                         }}>
-                        {claimHistory?.map((row) => (
+                        {claimHistory?.map((row, index) => (
                           <TableRow
-                            key={`row-${row.no}`}
+                            key={`row-${index}`}
                             sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                           >
-                            <TableCell align="right">{row.no}</TableCell>
-                            <TableCell align="right">{row.action}</TableCell>
-                            <TableCell align="right">{row.amount}</TableCell>
-                            <TableCell align="right">{row.date}</TableCell>
-                            <TableCell align="right">{row.status}</TableCell>
-                            <TableCell align="right"><Tooltip title={
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell align="left">{row.action}</TableCell>
+                            <TableCell align="left">{row.amount} ETH</TableCell>
+                            <TableCell align="left">{row.create_time.replace('T', ' ').replace('.000Z', '')}</TableCell>
+                            <TableCell align="left">{row.status}</TableCell>
+                            <TableCell align="left"><Tooltip title={
                               <React.Fragment>
-                                <span>{row.tx}
-                                <CopyToClipboard text={row.tx} onCopy={() => setInfoOpen(true)} >
+                                <span>{row.tx_hash}
+                                <CopyToClipboard text={row.tx_hash} onCopy={() => setInfoOpen(true)} >
                                   <ContentCopyIcon className={classes.copyIcon}/>
                                 </CopyToClipboard>
                                 </span>
