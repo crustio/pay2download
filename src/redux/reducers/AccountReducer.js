@@ -1,10 +1,11 @@
 import {
-    SET_ACCOUNT_ADDRESS, SET_ACCOUNT_SIGNATURE,
+    SET_ACCOUNT_ADDRESS, SET_ACCOUNT_SIGNATURE, SET_IS_LOGGED_IN,
 } from "../actions/AccountActions";
 
 const initialState = {
     address: [],
-    signature: null
+    signature: null,
+    isLoggedIn: true,
 };
 
 const AccountReducer = function(state = initialState, action) {
@@ -19,6 +20,12 @@ const AccountReducer = function(state = initialState, action) {
             return {
                 ...state,
                 signature: action.signature
+            }
+        }
+        case SET_IS_LOGGED_IN: {
+            return {
+                ...state,
+                isLoggedIn: action.isLoggedIn
             }
         }
         default: {

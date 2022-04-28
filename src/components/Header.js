@@ -6,7 +6,7 @@ import { Button } from '@mui/material';
 import { makeStyles } from '@mui/styles';
 import buttonImg from '../assets/button_third.png';
 import { connect } from "react-redux";
-import { setAccountAddress, setAccountSignature } from '../redux/actions/AccountActions';
+import { setAccountAddress, setAccountSignature, setIsLoggedIn } from '../redux/actions/AccountActions';
 import PropTypes from 'prop-types';
 import { sign } from '../utils/sign';
 
@@ -43,7 +43,7 @@ const useStyles = makeStyles(theme => ({
 const Header = (props) => {
   const classes = useStyles();
   const history = useHistory();
-  const { setAccountAddress, setAccountSignature, accountAddress } = props;
+  const { setAccountAddress, setAccountSignature, setIsLoggedIn, accountAddress } = props;
   
   useEffect(async () => {
     if(window.ethereum) {
@@ -102,6 +102,7 @@ const Header = (props) => {
     const signature = await sign(address, address);
     localStorage.setItem('signature', signature);
     setAccountSignature(signature);
+    setIsLoggedIn(true);
   }
 
   return (
@@ -129,4 +130,4 @@ const mapStateToProps = state => ({
   setAccountSignature: PropTypes.func.isRequired,
 });
 
-export default connect(mapStateToProps, { setAccountAddress, setAccountSignature })(Header);
+export default connect(mapStateToProps, { setAccountAddress, setAccountSignature, setIsLoggedIn })(Header);
