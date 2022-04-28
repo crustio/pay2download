@@ -129,11 +129,14 @@ const status = {
   2: 'Success',
   3: 'Failed',
 }
+
+
 const MyAccount = (props) => {
   const classes = useStyles();
   const history = useHistory();
   const [open, setOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState();
   const [data, setData] = useState();
   const [claimHistory, setClaimHistory] = useState();
@@ -290,7 +293,7 @@ const MyAccount = (props) => {
                                   <TableCell align="left">{`Claim`}</TableCell>
                                   <TableCell align="left">{row.amount} ETH</TableCell>
                                   <TableCell align="left">{row.create_time.replace('T', ' ').replace('.000Z', '')}</TableCell>
-                                  <TableCell align="left">{row.status}</TableCell>
+                                  <TableCell align="left">{status[row.status]}</TableCell>
                                   <TableCell align="left"><Tooltip title={
                                     <React.Fragment>
                                       <span>{row.tx_hash}
@@ -331,7 +334,11 @@ const MyAccount = (props) => {
                   <p style={{fontSize: 20, fontWeight: 500}}>My Selling Items</p>
                   <div className={classes.listCard}>
                     {data?.soldFiles?.map((item, index) => (
-                      <p key={`sold-files-${index}`}>{`#${index+1} ${item.name}, ${item.price} ETH, ${item.buyers.length} sold, `} <a href={`${window.location.origin}/buy-files/${item.share_link}`}>{window.location.origin}/buy-files/{item.share_link}</a></p>
+                      <p key={`sold-files-${index}`}>{`#${index+1} ${item.name}, ${item.price} ETH, ${item.buyers.length} sold, `} 
+                      <CopyToClipboard text={`${window.location.origin}/buy-files/${item.share_link}`} onCopy={() => setShareLinkOpen(true)} >
+                        <a href='#'>Share Link</a>
+                      </CopyToClipboard>
+                      </p>
                     ))}
                   </div>
                 </Grid>
@@ -346,6 +353,11 @@ const MyAccount = (props) => {
                     ))}
                   </div>
                 </Grid>
+                <Snackbar open={shareLinkOpen} autoHideDuration={2000} onClose={() => setShareLinkOpen(false)}>
+                  <Alert onClose={() => setShareLinkOpen(false)} severity="success" sx={{ width: '100%' }}>
+                    Share link copied!
+                  </Alert>
+                </Snackbar>
               </Grid>
               
               : 

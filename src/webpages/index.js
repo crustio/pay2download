@@ -17,13 +17,15 @@ const Webpages = (props) => {
   const { setIsLoggedIn } = props;
 
   useEffect(() => {
-    window.ethereum
+    if(window.ethereum) {
+      window.ethereum
       .request({ method: 'eth_accounts' })
       .then((res) => {
         if(res.length > 0) setIsLoggedIn(true);
         else setIsLoggedIn(false);
       })
       .catch(console.error);
+    }
   }, [window.ethereum])
 
   return(
