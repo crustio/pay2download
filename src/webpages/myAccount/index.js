@@ -22,8 +22,7 @@ import claimHistoryImg from '../../assets/claim_history.png';
 import Tooltip from '@mui/material/Tooltip';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
-import { decryptFile } from '../../utils/encrypt';
-import { saveAs } from 'file-saver';
+import { setGlobalPrivateKey } from '../../redux/actions/AccountActions';
 import axios from 'axios';
 
 const useStyles = makeStyles(theme => ({
@@ -141,7 +140,11 @@ const MyAccount = (props) => {
   const [data, setData] = useState();
   const [claimHistory, setClaimHistory] = useState();
   const [loading, setLoading] = useState(false);
-  const { accountAddress, signature, isLoggedIn } = props;
+  const { accountAddress, signature, isLoggedIn, setGlobalPrivateKey } = props;
+
+  useEffect(() => {
+    setGlobalPrivateKey(null);
+  }, []);
 
   useEffect(() => {
     fetchAccountInfo();
@@ -203,7 +206,7 @@ const MyAccount = (props) => {
     }
   }
 
-  const getPrivateKey = async (name, cid) => {
+  const onClickDownload = async (fileCid, shareLink) => {
     const perSignData = `eth-${accountAddress}:${signature}`;
     const base64Signature = window.btoa(perSignData);
     const AuthBearer = `Bearer ${base64Signature}`;
@@ -211,24 +214,15 @@ const MyAccount = (props) => {
     await axios.request({
       headers: { Authorization: AuthBearer },
       method: 'get',
-      url: `https://p2d.crustcode.com/api/v1/download/${cid}`
+      url: `https://p2d.crustcode.com/api/v1/download/${fileCid}`
     }).then(result => {
-      console.log(result.data.data.status);
       if(result.data.data.status === true) {
-        decryptAndDownload(result.data.data.result.private_key, name, cid);
+        setGlobalPrivateKey(result.data.data.result.private_key);
+        history.push(`/buy-files/${shareLink}`);
       }
     }).catch(error => {
       setErrorMessage('Error occurred during private key');
     });
-  }
-
-  const decryptAndDownload = async (privateKey, name, fileCid) => {
-    setLoading(true);
-    const res = await axios.get(`${process.env.REACT_APP_IPFS_ENDPOINT}/ipfs/${fileCid}?filename=${name}`, { responseType: "arraybuffer" });
-    const decryptData = await decryptFile(res.data, privateKey);
-    const saveFile = new File([decryptData], name, { type: res.headers['content-type'] });
-    saveAs(saveFile, name);
-    setLoading(false);
   }
 
   return (
@@ -348,7 +342,7 @@ const MyAccount = (props) => {
                     {data?.boughtFiles?.map((item, index) => (
                       <p key={`bought-files-${index}`}>
                         <span>{`#${index+1} ${item.name}, ${item.price} ETH, ${status[item.status]} `}</span> 
-                        {item.status === 2 && <a href="#" onClick={() => getPrivateKey(item.name, item.cid)}>Download</a>}
+                        {item.status === 2 && <a href="#" onClick={() => onClickDownload(item.cid, item.share_link)}>Download</a>}
                       </p>
                     ))}
                   </div>
@@ -382,4 +376,4 @@ const mapStateToProps = state => ({
   signature: state.account.signature,
   isLoggedIn: state.account.isLoggedIn
 });
-export default connect(mapStateToProps, {  })(MyAccount);
+export default connect(mapStateToProps, { setGlobalPrivateKey })(MyAccount);

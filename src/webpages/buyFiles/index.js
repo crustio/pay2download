@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import styled from 'styled-components'
 import axios from 'axios';
 import { connect } from "react-redux";
 import { makeStyles } from '@mui/styles';
@@ -6,7 +7,11 @@ import { Button } from '@mui/material';
 import cardImg from '../../assets/card-background.png';
 import buttonImg from '../../assets/button.png';
 import { useParams } from "react-router-dom";
+import LoadingOverlay from 'react-loading-overlay-ts';
+import { decryptFile } from '../../utils/encrypt';
+import { saveAs } from 'file-saver';
 import Web3 from 'web3';
+import { setIsLoading, setGlobalPrivateKey } from '../../redux/actions/AccountActions';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -50,7 +55,12 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
+const StyledLoader = styled(LoadingOverlay)`
+  height: 100%;
+`
+
 const BuyFiles = (props) => {
+  const { accountAddress, signature, isLoggedIn, setIsLoading, globalPrivateKey, setGlobalPrivateKey } = props;
   const classes = useStyles();
   const [success, setSuccess] = useState(false); // Success for file purchase.
   const [loading, setLoading] = useState(false); 
@@ -62,8 +72,9 @@ const BuyFiles = (props) => {
   const [fileCid, setFileCid] = useState(); // Cid of file to down.
   const [sellerAddress, setSellerAddress] = useState(); // File seller's Metamask address.
   const [transactionHash, setTransactionHash] = useState(); // Hash for transaction to buy files.
+  const [privateKey, setPrivateKey] = useState(globalPrivateKey);
+  const [errorMessage, setErrorMessage] = useState();
   let { shortlink } = useParams();
-  const { accountAddress, signature, isLoggedIn } = props;
 
   useEffect(async () => {
     if(accountAddress && signature && accountAddress.length > 0) {
@@ -112,22 +123,32 @@ const BuyFiles = (props) => {
       }).then(result => {
         if(result.data) {
           if(result.data.data.status === true && result.data.data.result === 'success') {
-            setSuccess(true);
-            setLoading(false);
+            getPrivateKey();
           }
         }
         else {
           setLoading(false);
+          setIsLoading(false);
         }
       }).catch(error => {
         setLoading(false);
+        setIsLoading(false);
       });
     }
-  }, [transactionHash])
+  }, [transactionHash]);
+
+  useEffect(() => {
+    if(privateKey) {
+      setSuccess(true);
+      setLoading(false);
+      setIsLoading(false);
+    }
+  }, [privateKey]);
 
   const clickPayButton = async () => {
     if(accountAddress && signature) {
       setLoading(true);
+      setIsLoading(true);
 
       const web3 = new Web3(window.ethereum);
 
@@ -145,50 +166,93 @@ const BuyFiles = (props) => {
         .on('confirmation', function(confirmationNumber, receipt){ 
           setTransactionHash(receipt.transactionHash);
         })
-        .on('error', function(error) { setLoading(false) });
+        .on('error', function(error) { setLoading(false); setIsLoading(false); });
       }
       else {
         setLoading(false);
+        setIsLoading(false);
       }
     }
   }
 
+  const getPrivateKey = async () => {
+    const perSignData = `eth-${accountAddress}:${signature}`;
+    const base64Signature = window.btoa(perSignData);
+    const AuthBearer = `Bearer ${base64Signature}`;
+
+    await axios.request({
+      headers: { Authorization: AuthBearer },
+      method: 'get',
+      url: `https://p2d.crustcode.com/api/v1/download/${fileCid}`
+    }).then(result => {
+      if(result.data.data.status === true) {
+        setSuccess(true);
+        setLoading(false);
+        setIsLoading(false);
+        setPrivateKey(result.data.data.result.private_key);
+      }
+    }).catch(error => {
+      setErrorMessage('Error occurred during private key');
+    });
+  }
+
+  const decryptAndDownload = async () => {
+    setLoading(true);
+    setIsLoading(true);
+    const res = await axios.get(`${process.env.REACT_APP_IPFS_ENDPOINT}/ipfs/${fileCid}?filename=${name}`, { responseType: "arraybuffer" });
+    const decryptData = await decryptFile(res.data, privateKey);
+    const saveFile = new File([decryptData], name, { type: res.headers['content-type'] });
+    saveAs(saveFile, name);
+    setLoading(false);
+    setIsLoading(false);
+    setGlobalPrivateKey(null);
+  }
+
   return (
     <div className={classes.container}>
-      <div className={classes.card}>
-        {
-          isLoggedIn 
-          ? 
-          <React.Fragment>
-            {signature ? <React.Fragment>
-              {fileExist === true ? <div>
-                  <h2>{name}</h2>
-                  <p>{numberOfFiles} Files, {size}, {price} ETH</p>
-                  {loading && <p className={classes.msg}>Payment Processing... Please Wait</p>}
-                  {success ? <h3>Payment successful!</h3> : 
+      <StyledLoader
+          active={loading}
+          spinner
+          style={{
+            wrapper: {
+              width: '100%',
+              height: '100%'
+            }
+          }}
+        >
+        <div className={classes.card}>
+          {
+            isLoggedIn 
+            ? 
+            <React.Fragment>
+              {signature ? <React.Fragment>
+                {fileExist === true ? <div>
+                    <h2>{name}</h2>
+                    <p>{numberOfFiles} Files, {size}, {price < 0.00001 ? parseFloat(price) : price} ETH</p>
+                    {loading && !success && <p className={classes.msg}>Payment process, please don't close and refresh the page</p>}
                     <Button 
                       className={loading === false ? classes.imgButton : classes.imgButtonDisabled} 
-                      onClick={() => clickPayButton()} 
+                      onClick={() => success ? decryptAndDownload() : clickPayButton()} 
                       disabled={loading}>
-                        {`Pay ${price} ETH`}
-                    </Button> 
-                  }
-              </div> : 
-              <div>
-                <h2>File Does not exist.</h2>
-              </div>}
-              </React.Fragment> 
-              :
-              <div>
-                <h2>You didn't sign from Metamask. Please check Metamask or refresh page.</h2>
+                        {success ? 'Download' : `Pay ${price < 0.00001 ? parseFloat(price) : price} ETH`}
+                    </Button>
+                </div> : 
+                <div>
+                  <h2>File Does not exist.</h2>
+                </div>}
+                </React.Fragment> 
+                :
+                <div>
+                  <h2>You didn't sign from Metamask. Please check Metamask or refresh page.</h2>
+                </div>
+              }
+            </React.Fragment>
+            : <div>
+                <h2>You are not logged into Metamask. Please login first.</h2>
               </div>
-            }
-          </React.Fragment>
-          : <div>
-              <h2>You are not logged into Metamask. Please login first.</h2>
-            </div>
-        }
-      </div>
+          }
+        </div>
+      </StyledLoader>
     </div>
   );
 };
@@ -196,7 +260,8 @@ const BuyFiles = (props) => {
 const mapStateToProps = state => ({
   accountAddress: state.account.address,
   signature: state.account.signature,
-  isLoggedIn: state.account.isLoggedIn
+  isLoggedIn: state.account.isLoggedIn,
+  globalPrivateKey: state.account.globalPrivateKey,
 });
 
-export default connect(mapStateToProps, {  })(BuyFiles);
+export default connect(mapStateToProps, { setIsLoading, setGlobalPrivateKey })(BuyFiles);

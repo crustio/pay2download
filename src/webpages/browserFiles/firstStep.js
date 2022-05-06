@@ -146,21 +146,39 @@ const FirstStep = (props) => {
     setFileList(fileArr);
   }
 
-  const handleDragAndDropChange = file => {
+  const handleDragAndDropChange = async (file) => {
     var isContainFolder = false;
     var fileArr = [];
     setSizeErrorMessage(null);
     setTypeErrorMessage(null);
-    Object.keys(file).forEach(key => {
-      if(file[key].type === "" && file[key].size === 4096) isContainFolder = true;
-      fileArr.push(file[key]);
-    });
+    for(let i=0; i<file.length; i++) {
+      const response = await isFile(file[i]);
+      if(response === "NotFoundError") isContainFolder = true;
+      fileArr.push(file[i]);
+    };
+
     if(isContainFolder) {
       setTypeErrorMessage('Can\'t upload folder using drag and drop zone. Please use Browse File button.');
     }
     else {
       setFileList(fileArr);
     }
+  }
+
+  const isFile = (maybeFile) => {
+    return new Promise(function (resolve, reject) {
+      if (maybeFile.type !== '') {
+        return resolve(maybeFile)
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        if (reader.error && reader.error.name === 'NotFoundError') {
+          return resolve(reader.error.name)
+        }
+        resolve(maybeFile)
+      }
+      reader.readAsBinaryString(maybeFile)
+    })
   }
 
   const handleMoreChange = event => {

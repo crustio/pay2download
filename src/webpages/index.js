@@ -10,7 +10,6 @@ import BrowseFiles from './browserFiles';
 import MyAccount from './myAccount';
 import BuyFiles from './buyFiles';
 import Layout from '../components/Layout';
-import Web3 from 'web3';
 import { setIsLoggedIn } from '../redux/actions/AccountActions';
 
 const Webpages = (props) => {
@@ -22,7 +21,10 @@ const Webpages = (props) => {
       .request({ method: 'eth_accounts' })
       .then((res) => {
         if(res.length > 0) setIsLoggedIn(true);
-        else setIsLoggedIn(false);
+        else {
+          setIsLoggedIn(false);
+          window.ethereum.request({ method: 'eth_requestAccounts' });
+        }
       })
       .catch(console.error);
     }

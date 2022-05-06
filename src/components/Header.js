@@ -43,7 +43,7 @@ const useStyles = makeStyles(theme => ({
 const Header = (props) => {
   const classes = useStyles();
   const history = useHistory();
-  const { setAccountAddress, setAccountSignature, setIsLoggedIn, accountAddress } = props;
+  const { setAccountAddress, setAccountSignature, setIsLoggedIn, accountAddress, isLoading, isLoggedIn } = props;
   
   useEffect(async () => {
     if(window.ethereum) {
@@ -63,6 +63,7 @@ const Header = (props) => {
           if(res.length === 0) history.push('/');
           else {
             setAccountAddress(res[0]);
+            updateSignature(res[0]);
             localStorage.setItem('address', res[0]);
           }
         })
@@ -96,7 +97,7 @@ const Header = (props) => {
     history.push('/');
   }
 
-  const shortenAddress = address => address && address.length > 0 ? `${address.slice(0, 6)}...${address.substr(address.length - 8)}` : '';
+  const shortenAddress = address => address && address.length > 0 && isLoggedIn ? `${address.slice(0, 6)}...${address.substr(address.length - 8)}` : '';
 
   const updateSignature = async (address) => {
     const signature = await sign(address, address);
@@ -117,8 +118,8 @@ const Header = (props) => {
         </div>
       </div>
       <div className={classes.container}>
-        <Button className={classes.imgButton} onClick={() => history.push('/my-account')}>My Account</Button>
-        <Button className={classes.imgButton} onClick={() => disconnect()}>Disconnect</Button>
+        <Button className={classes.imgButton} onClick={() => history.push('/my-account')} disabled={isLoading} >My Account</Button>
+        <Button className={classes.imgButton} onClick={() => disconnect()} disabled={isLoading} >Disconnect</Button>
       </div>
     </HeaderBar>
   );
@@ -126,6 +127,8 @@ const Header = (props) => {
 
 const mapStateToProps = state => ({
   accountAddress: state.account.address,
+  isLoading: state.account.isLoading,
+  isLoggedIn: state.account.isLoggedIn,
   setAccountAddress: PropTypes.func.isRequired,
   setAccountSignature: PropTypes.func.isRequired,
 });

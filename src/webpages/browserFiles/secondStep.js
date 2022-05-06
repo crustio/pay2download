@@ -88,8 +88,6 @@ const SecondStep = (props) => {
             zip.file(file.name, file, {binary: true});
             count++;
             if (count === fileList.length) {
-              console.log('step start');
-              console.log(file.name);
               zip.generateAsync({type:'blob'}).then(async (content) => {
                 setStep(step+1); // Move to progress page.
                 setUpState(0); // Set start progress 0.

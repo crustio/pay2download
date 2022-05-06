@@ -103,7 +103,7 @@ const BrowseFiles = (props) => {
               {step === 4 && <div>
                 <h1>Congratulations!</h1>
                 <h3>You have successfully created a sale item.</h3>
-                <h3>Sharelinks: <a target="_blank" rel="noreferrer" href={`${window.location.origin}/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>{window.location.origin}/buy-files/{shareLink}</a></h3>
+                <h3>Share links: <a target="_blank" rel="noreferrer" href={`${window.location.origin}/buy-files/${shareLink}`} style={{color: '#FF8D00'}}>{window.location.origin}/buy-files/{shareLink}</a></h3>
               </div>}
             </React.Fragment> : <React.Fragment>
               <div>
