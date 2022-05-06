@@ -55,7 +55,7 @@ const Home = () => {
     }
     else {
       const provider = new Web3.providers.HttpProvider(
-        `https://rinkeby.infura.io/v3/ff7cb837065f48009f1e3b2039f50df3`
+        `https://mainnet.infura.io/v3/ff7cb837065f48009f1e3b2039f50df3`
       );
       const web3Obj = new Web3(provider);
       setWeb3(web3Obj);

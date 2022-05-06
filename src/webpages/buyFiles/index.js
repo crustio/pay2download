@@ -147,17 +147,12 @@ const BuyFiles = (props) => {
 
   const clickPayButton = async () => {
     if(accountAddress && signature) {
-      setLoading(true);
-      setIsLoading(true);
-
       const web3 = new Web3(window.ethereum);
-
-      if(isLoggedIn) {
+      const sendTransaction = () => {
         web3.eth.sendTransaction({
           from: accountAddress,
           to: sellerAddress,
           value: Web3.utils.toWei(price.toString(), 'ether'),
-          chainId: '0x4'
         })
         .on('transactionHash', function(hash){
         })
@@ -167,6 +162,29 @@ const BuyFiles = (props) => {
           setTransactionHash(receipt.transactionHash);
         })
         .on('error', function(error) { setLoading(false); setIsLoading(false); });
+      }
+
+      setLoading(true);
+      setIsLoading(true);
+
+      if(isLoggedIn) {
+        if(window.ethereum.networkVersion === '1') {
+          sendTransaction();
+        }
+        else {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: web3.utils.toHex(1) }]
+            })
+            .then((res) => sendTransaction())
+            .catch((err) => {
+              setLoading(false);
+              setIsLoading(false);
+            });
+          } catch (err) {
+          }
+        }
       }
       else {
         setLoading(false);

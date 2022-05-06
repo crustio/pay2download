@@ -328,7 +328,7 @@ const MyAccount = (props) => {
                   <p style={{fontSize: 20, fontWeight: 500}}>My Selling Items</p>
                   <div className={classes.listCard}>
                     {data?.soldFiles?.map((item, index) => (
-                      <p key={`sold-files-${index}`}>{`#${index+1} ${item.name}, ${item.price} ETH, ${item.buyers.length} sold, `} 
+                      <p key={`sold-files-${index}`}>{`#${index+1} ${item.name}, ${item.price < 0.00001 ? parseFloat(item.price) : item.price} ETH, ${item.buyers.length} sold, `} 
                       <CopyToClipboard text={`${window.location.origin}/buy-files/${item.share_link}`} onCopy={() => setShareLinkOpen(true)} >
                         <a href='#'>Share Link</a>
                       </CopyToClipboard>
@@ -341,7 +341,7 @@ const MyAccount = (props) => {
                   <div className={classes.listCard}>
                     {data?.boughtFiles?.map((item, index) => (
                       <p key={`bought-files-${index}`}>
-                        <span>{`#${index+1} ${item.name}, ${item.price} ETH, ${status[item.status]} `}</span> 
+                        <span>{`#${index+1} ${item.name}, ${item.price < 0.00001 ? parseFloat(item.price) : item.price} ETH, ${status[item.status]} `}</span> 
                         {item.status === 2 && <a href="#" onClick={() => onClickDownload(item.cid, item.share_link)}>Download</a>}
                       </p>
                     ))}
