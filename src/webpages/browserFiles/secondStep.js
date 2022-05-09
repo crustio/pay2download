@@ -185,7 +185,7 @@ const SecondStep = (props) => {
           },
           headers: { Authorization: AuthBearer },
           method: 'POST',
-          url: `https://p2d.crustcode.com/api/v1/calculateShortLinkHash`
+          url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/calculateShortLinkHash`
         }).catch(error => {
           setErrorMessage('Error occurred during generate short hash link');
         });

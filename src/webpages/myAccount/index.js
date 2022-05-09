@@ -164,7 +164,7 @@ const MyAccount = (props) => {
       await axios.request({
         headers: { Authorization: AuthBearer },
         method: 'get',
-        url: `https://p2d.crustcode.com/api/v1/accountInfo`
+        url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/accountInfo`
       }).then(result => {
         setData(result.data.data);
       }).catch(error => {
@@ -174,7 +174,7 @@ const MyAccount = (props) => {
       await axios.request({
         headers: { Authorization: AuthBearer },
         method: 'get',
-        url: `https://p2d.crustcode.com/api/v1/claimHistory`
+        url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/claimHistory`
       }).then(result => {
         setClaimHistory(result.data.data);
         setLoading(false);
@@ -197,7 +197,7 @@ const MyAccount = (props) => {
       await axios.request({
         headers: { Authorization: AuthBearer },
         method: 'post',
-        url: `https://p2d.crustcode.com/api/v1/claim`
+        url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/claim`
       }).then(result => {
         fetchAccountInfo();
       }).catch(error => {
@@ -214,7 +214,7 @@ const MyAccount = (props) => {
     await axios.request({
       headers: { Authorization: AuthBearer },
       method: 'get',
-      url: `https://p2d.crustcode.com/api/v1/download/${fileCid}`
+      url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/download/${fileCid}`
     }).then(result => {
       if(result.data.data.status === true) {
         setGlobalPrivateKey(result.data.data.result.private_key);

@@ -86,7 +86,7 @@ const BuyFiles = (props) => {
       await axios.request({
         headers: { Authorization: AuthBearer },
         method: 'get',
-        url: `https://p2d.crustcode.com/api/v1/shortLink/${shortlink}`
+        url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/shortLink/${shortlink}`
       }).then(result => {
         if(result.data.data.name) {
           setName(result.data.data.name);
@@ -119,7 +119,7 @@ const BuyFiles = (props) => {
         },
         headers: { Authorization: AuthBearer },
         method: 'post',
-        url: `https://p2d.crustcode.com/api/v1/buyFile`
+        url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/buyFile`
       }).then(result => {
         if(result.data) {
           if(result.data.data.status === true && result.data.data.result === 'success') {
@@ -201,7 +201,7 @@ const BuyFiles = (props) => {
     await axios.request({
       headers: { Authorization: AuthBearer },
       method: 'get',
-      url: `https://p2d.crustcode.com/api/v1/download/${fileCid}`
+      url: `${process.env.REACT_APP_BACKEND_ENDPOINT}/download/${fileCid}`
     }).then(result => {
       if(result.data.data.status === true) {
         setSuccess(true);

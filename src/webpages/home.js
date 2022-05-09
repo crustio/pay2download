@@ -32,10 +32,10 @@ const Home = () => {
   const connectMetaMask = async () => {
     if (window.ethereum) {
       const web3Obj = new Web3(window.ethereum);
-      try {
-        await window.ethereum.enable();
-        setWeb3(web3Obj);
-      } catch (error) {
+        try {
+          await window.ethereum.enable();
+          setWeb3(web3Obj);
+        } catch (error) {
       }
 
       window.ethereum
