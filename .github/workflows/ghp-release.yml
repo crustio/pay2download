@@ -18,7 +18,9 @@ jobs:
         run: yarn
 
       - name: Build
-        run: CI=false yarn run build
+        run: |
+          CI=false yarn run build
+          cp build/index.html build/404.html
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.5
