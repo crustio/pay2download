@@ -140,6 +140,7 @@ const MyAccount = (props) => {
   const [data, setData] = useState();
   const [claimHistory, setClaimHistory] = useState();
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState();
   const { accountAddress, signature, isLoggedIn, setGlobalPrivateKey } = props;
 
   useEffect(() => {
@@ -178,21 +179,25 @@ const MyAccount = (props) => {
       }).then(result => {
         setClaimHistory(result.data.data);
         setLoading(false);
+        setLoadingText(null);
       }).catch(error => {
         console.log('Error occurred during fetch claim history');
-        
+        setLoading(false);
+        setLoadingText(null);
       });
     }
   }
 
   const onClickClaim = async () => {
-    if(data?.unclaimed === 0) {
-      setErrorMessage('No revenue can be claimed!');
+    if(data?.unclaimed === '0.0') {
+      setErrorMessage('No amount to claim!');
     }
     else {
       const perSignData = `eth-${accountAddress}:${signature}`;
       const base64Signature = window.btoa(perSignData);
       const AuthBearer = `Bearer ${base64Signature}`;
+
+      setLoadingText('The claim process will take 5-10 minutes. You can check the progress status in "Check Claim History"');
   
       await axios.request({
         headers: { Authorization: AuthBearer },
@@ -202,6 +207,7 @@ const MyAccount = (props) => {
         fetchAccountInfo();
       }).catch(error => {
         setErrorMessage('Error occurred during fetch claim');
+        setLoadingText(null);
       });
     }
   }
@@ -230,6 +236,7 @@ const MyAccount = (props) => {
       <StyledLoader
           active={loading}
           spinner
+          text={loadingText}
           style={{
             wrapper: {
               width: '100%',
