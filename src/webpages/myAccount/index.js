@@ -189,10 +189,11 @@ const MyAccount = (props) => {
   }
 
   const onClickClaim = async () => {
-    if(data?.unclaimed === '0.0') {
+    if(data?.unclaimed === '0.0' || data?.unclaimed === '0') {
       setErrorMessage('No amount to claim!');
     }
     else {
+      setLoading(true);
       const perSignData = `eth-${accountAddress}:${signature}`;
       const base64Signature = window.btoa(perSignData);
       const AuthBearer = `Bearer ${base64Signature}`;
@@ -208,6 +209,7 @@ const MyAccount = (props) => {
       }).catch(error => {
         setErrorMessage('Error occurred during fetch claim');
         setLoadingText(null);
+        setLoading(false);
       });
     }
   }
