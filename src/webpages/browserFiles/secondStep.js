@@ -169,7 +169,7 @@ const SecondStep = (props) => {
         setErrorMessage('Error occurred druing pinning cid!');
       });
       
-      if(resultApi?.status === 200) {
+      if(resultApi?.status === 202) {
         setUpState(99);
         // CALL API 1
         resultApi = await axios.request({
